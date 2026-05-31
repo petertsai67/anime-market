@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動漫周邊二手交易平台 - 期末專案 Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: "Microsoft JhengHei", sans-serif; }
+        .navbar { background-color: #ff4e50; }
+        .card-product { transition: transform 0.2s; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card-product:hover { transform: translateY(-5px); }
+        .badge-showcase { background-color: #6f42c1; color: white; }
+        .badge-condition { background-color: #0d6efd; color: white; }
+        .sidebar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">🛒 ACG 二手周邊交易平台 (資傳二乙 Demo)</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="sidebar">
+                    <h5 class="fw-bold mb-3">🔍 多維度標籤篩選</h5>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">1. 選擇動漫作品 (Anime)</label>
+                        <select id="animeSelect" class="form-select" onchange="updateCharacters()">
+                            <option value="全部">-- 全部作品 --</option>
+                            <option value="排球少年">排球少年</option>
+                            <option value="咒術迴戰">咒術迴戰</option>
+                            <option value="葬送的芙莉蓮">葬送的芙莉蓮</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">2. 選擇特定角色 (Character)</label>
+                        <select id="charSelect" class="form-select" disabled onchange="filterProducts()">
+                            <option value="全部">-- 請先選擇作品 --</option>
+                        </select>
+                    </div>
+                    <hr>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showcaseFilter" onchange="filterProducts()">
+                        <label class="form-check-label fw-semibold" for="showcaseFilter">🔮 只看痛包/展示櫃釋出</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <h4 class="fw-bold mb-3" id="resultTitle">所有二手周邊商品</h4>
+                <div class="row" id="productGrid">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 模擬資料庫的資料表 (Database Mock Data)
+        const charactersData = {
+            "排球少年": ["日向翔陽", "影山飛雄", "孤爪研磨"],
+            "咒術迴戰": ["五條悟", "虎杖悠仁"],
+            "葬送的芙莉蓮": ["芙莉蓮", "費倫"]
+        };
+
+        const productsData = [
+            { id: 1, seller: "Tony王柏陽", integrity: 100, anime: "排球少年", char: "日向翔陽", title: "【展示櫃出清】排球少年 日向翔陽 官方限定公仔", price: 1200, condition: "二手拆擺", isShowcase: true },
+            { id: 2, seller: "阿俊俊", integrity: 95, anime: "排球少年", char: "孤爪研磨", title: "孤爪研磨 劇場版限定徽章 (痛包拆賣)", price: 150, condition: "僅拆封確認", isShowcase: true },
+            { id: 3, seller: "Tony王柏陽", integrity: 100, anime: "咒術迴戰", char: "五條悟", title: "咒術迴戰 五條悟 壓克力立牌", price: 350, condition: "全新未拆", isShowcase: false },
+            { id: 4, seller: "周邊收藏家", integrity: 80, anime: "葬送的芙莉蓮", char: "芙莉蓮", title: "芙莉蓮 限量黏土人 可動模型", price: 1400, condition: "二手拆擺", isShowcase: false },
+            { id: 5, seller: "阿俊俊", integrity: 95, anime: "排球少年", char: "影山飛雄", title: "影山飛雄 橫斷幕大毛巾", price: 600, condition: "全新未拆", isShowcase: false }
+        ];
+
+        // 2. 處理「作品」與「角色」的一對多連動關聯
+        function updateCharacters() {
+            const animeSelect = document.getElementById("animeSelect");
+            const charSelect = document.getElementById("charSelect");
+            const selectedAnime = animeSelect.value;
+
+            charSelect.innerHTML = '<option value="全部">-- 全部角色 --</option>';
+
+            if (selectedAnime === "全部") {
+                charSelect.disabled = true;
+            } else {
+                charSelect.disabled = false;
+                const characters = charactersData[selectedAnime] || [];
+                characters.forEach(char => {
+                    const opt = document.createElement("option");
+                    opt.value = char;
+                    opt.textContent = char;
+                    charSelect.appendChild(opt);
+                });
+            }
+            filterProducts();
+        }
+
+        // 3. 處理複合多條件查詢 (模擬後端 SQL WHERE 篩選邏輯)
+        function filterProducts() {
+            const selectedAnime = document.getElementById("animeSelect").value;
+            const selectedChar = document.getElementById("charSelect").value;
+            const onlyShowcase = document.getElementById("showcaseFilter").checked;
+
+            // 模擬 SQL 的 WHERE 篩選
+            const filtered = productsData.filter(item => {
+                const matchAnime = (selectedAnime === "全部" || item.anime === selectedAnime);
+                const matchChar = (selectedChar === "全部" || item.char === selectedChar);
+                const matchShowcase = (!onlyShowcase || item.isShowcase === true);
+                return matchAnime && matchChar && matchShowcase;
+            });
+
+            renderProducts(filtered);
+        }
+
+        // 4. 將篩選後的商品動態渲染至網頁前端
+        function renderProducts(products) {
+            const grid = document.getElementById("productGrid");
+            grid.innerHTML = "";
+
+            if (products.length === 0) {
+                grid.innerHTML = `<div class="col-12 text-center text-muted my-5"><h5>😭 找不到對應的二手周邊商品，請調整篩選條件。</h5></div>`;
+                return;
+            }
+
+            products.forEach(p => {
+                const card = document.createElement("div");
+                card.className = "col-md-4 mb-4";
+                card.innerHTML = `
+                    <div class="card h-100 card-product">
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-2">
+                                <span class="badge bg-secondary">${p.anime}</span>
+                                <span class="badge bg-dark">${p.char}</span>
+                            </div>
+                            <h5 class="card-title fw-bold text-dark fs-6">${p.title}</h5>
+                            <p class="text-danger fw-bold fs-5 mb-2">NT$ ${p.price}</p>
+                            <div class="mb-3">
+                                <span class="badge badge-condition">${p.condition}</span>
+                                ${p.isShowcase ? '<span class="badge badge-showcase">🔮 展示櫃/痛包商品</span>' : ''}
+                            </div>
+                            <div class="mt-auto pt-3 border-top bg-light p-2 rounded">
+                                <small class="text-muted d-block">賣家: <strong>${p.seller}</strong></small>
+                                <small class="text-muted">圈內誠信度: <span class="text-success fw-bold">${p.integrity} 分</span></small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 網頁初始載入時顯示所有商品
+        window.onload = function() {
+            renderProducts(productsData);
+        };
+    </script>
+</body>
+</html>
